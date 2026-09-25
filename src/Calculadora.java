@@ -10,10 +10,8 @@ public class Calculadora extends JFrame {
     private JRadioButton radioRadianes;
 
     // ---- Estado de la calculadora ----
-    private double resultado = 0;
-    private String operadorPendiente = null;
-    private String numeroActual = "";
     private String textoOperacion = "";
+    private boolean operacionTerminada = false;
 
     public Calculadora() {
         setTitle("Calculadora Cientifica");
@@ -73,24 +71,38 @@ public class Calculadora extends JFrame {
         botonSeno.addActionListener(e -> accionSeno());
         gbc.gridx = 0;
         gbc.gridy = 3;
-        gbc.gridwidth = 2;
+        gbc.gridwidth = 1;
         gbc.weightx = 1;
         gbc.weighty = 1;
         add(botonSeno, gbc);
 
         JButton botonCoseno = Estilo.crearBoton("cos", Estilo.BOTON_OPERACION, Estilo.TEXTO_CLARO);
         botonCoseno.addActionListener(e -> accionCoseno());
-        gbc.gridx = 2;
+        gbc.gridx = 1;
         gbc.gridy = 3;
         gbc.gridwidth = 1;
         add(botonCoseno, gbc);
 
         JButton botonTangente = Estilo.crearBoton("tan", Estilo.BOTON_OPERACION, Estilo.TEXTO_CLARO);
         botonTangente.addActionListener(e -> accionTangente());
+        gbc.gridx = 2;
+        gbc.gridy = 3;
+        gbc.gridwidth = 1;
+        add(botonTangente, gbc);
+
+        JButton botonAbre = Estilo.crearBoton("(", Estilo.BOTON_OPERACION, Estilo.TEXTO_CLARO);
+        botonAbre.addActionListener(e -> escribirDigito("("));
         gbc.gridx = 3;
         gbc.gridy = 3;
-        gbc.gridwidth = 2;
-        add(botonTangente, gbc);
+        gbc.gridwidth = 1;
+        add(botonAbre, gbc);
+
+        JButton botonCierra = Estilo.crearBoton(")", Estilo.BOTON_OPERACION, Estilo.TEXTO_CLARO);
+        botonCierra.addActionListener(e -> escribirDigito(")"));
+        gbc.gridx = 4;
+        gbc.gridy = 3;
+        gbc.gridwidth = 1;
+        add(botonCierra, gbc);
 
         // ---- Fila 7 8 9 / C ----
         JButton boton7 = Estilo.crearBoton("7", Estilo.BOTON_NUMERO, Estilo.TEXTO_OSCURO);
@@ -218,140 +230,132 @@ public class Calculadora extends JFrame {
     }
 
 
-    private void accionSumar() {
-        aplicarOperador("+");
-    }
-
-    private void accionRestar() {
-        aplicarOperador("-");
-    }
-
-    private void accionMultiplicar() {
-        aplicarOperador("*");
-    }
-
-    private void accionDividir() {
-        aplicarOperador("/");
-    }
-
-    private void accionSeno() {
-        aplicarTrigonometria("sin");
-    }
-
-    private void accionCoseno() {
-        aplicarTrigonometria("cos");
-    }
-
-    private void accionTangente() {
-        aplicarTrigonometria("tan");
-    }
-
-    private void accionPi() {
-        numeroActual = String.valueOf(Math.PI);
-        textoOperacion = textoOperacion + "π";
-        pantallaOperacion.setText(textoOperacion);
-        pantallaResultado.setText(formatear(Math.PI));
-    }
-
-    private void accionPunto() {
-        if (!numeroActual.contains(".")) {
-            numeroActual = numeroActual + ".";
-            textoOperacion = textoOperacion + ".";
-            pantallaOperacion.setText(textoOperacion);
-            pantallaResultado.setText(numeroActual);
-        }
-    }
+    private void accionSumar() { aplicarOperador("+"); }
+    private void accionRestar() { aplicarOperador("-"); }
+    private void accionMultiplicar() { aplicarOperador("*"); }
+    private void accionDividir() { aplicarOperador("/"); }
+    private void accionSeno() { escribirDigito("sin("); }
+    private void accionCoseno() { escribirDigito("cos("); }
+    private void accionTangente() { escribirDigito("tan("); }
+    private void accionPi() { escribirDigito("π"); }
+    private void accionPunto() { escribirDigito("."); }
 
     private void accionBorrar() {
-        if (!numeroActual.isEmpty()) {
-            numeroActual = numeroActual.substring(0, numeroActual.length() - 1);
+        if (operacionTerminada) {
+            textoOperacion = "";
+            pantallaResultado.setText("0");
+            pantallaOperacion.setText("0");
+            operacionTerminada = false;
+            return;
         }
         if (!textoOperacion.isEmpty()) {
             textoOperacion = textoOperacion.substring(0, textoOperacion.length() - 1);
         }
         pantallaOperacion.setText(textoOperacion.isEmpty() ? "0" : textoOperacion);
-        pantallaResultado.setText(numeroActual.isEmpty() ? "0" : numeroActual);
     }
 
     private void accionLimpiar() {
-        resultado = 0;
-        operadorPendiente = null;
-        numeroActual = "";
         textoOperacion = "";
+        operacionTerminada = false;
         pantallaOperacion.setText("0");
         pantallaResultado.setText("0");
     }
 
     private void accionIgual() {
-        if (numeroActual.isEmpty()) {
-            return;
+        if (textoOperacion.isEmpty()) return;
+        try {
+            double resultado = evaluarExpresion(textoOperacion);
+            pantallaResultado.setText(formatear(resultado));
+        } catch (Exception e) {
+            pantallaResultado.setText("Error");
         }
-        double valor = Double.parseDouble(numeroActual);
-        if (operadorPendiente != null) {
-            resultado = calcular(resultado, valor, operadorPendiente);
-        } else {
-            resultado = valor;
-        }
-        pantallaResultado.setText(formatear(resultado));
-
-        operadorPendiente = null;
-        numeroActual = "";
-        textoOperacion = "";
-        pantallaOperacion.setText("0");
+        operacionTerminada = true;
     }
 
     private void escribirDigito(String digito) {
-        numeroActual = numeroActual + digito;
-        textoOperacion = textoOperacion + digito;
+        if (operacionTerminada) {
+            textoOperacion = "";
+            pantallaResultado.setText("0");
+            operacionTerminada = false;
+        }
+        textoOperacion += digito;
         pantallaOperacion.setText(textoOperacion);
-        pantallaResultado.setText(numeroActual);
     }
 
     private void aplicarOperador(String simbolo) {
-        if (!numeroActual.isEmpty()) {
-            double valor = Double.parseDouble(numeroActual);
-            if (operadorPendiente != null) {
-                resultado = calcular(resultado, valor, operadorPendiente);
-            } else {
-                resultado = valor;
+        if (operacionTerminada) {
+            textoOperacion = pantallaResultado.getText();
+            if (textoOperacion.equals("Error")) textoOperacion = "0";
+            operacionTerminada = false;
+        }
+        if (textoOperacion.isEmpty()) textoOperacion = "0";
+        textoOperacion += simbolo;
+        pantallaOperacion.setText(textoOperacion);
+    }
+
+    private double evaluarExpresion(final String str) {
+        return new Object() {
+            int pos = -1, ch;
+            void nextChar() { ch = (++pos < str.length()) ? str.charAt(pos) : -1; }
+            boolean eat(int charToEat) {
+                while (ch == ' ') nextChar();
+                if (ch == charToEat) { nextChar(); return true; }
+                return false;
             }
-            numeroActual = "";
-        }
-        operadorPendiente = simbolo;
-        textoOperacion = textoOperacion + simbolo;
-        pantallaResultado.setText(formatear(resultado));
-        pantallaOperacion.setText(textoOperacion);
-    }
-
-    private double calcular(double a, double b, String simbolo) {
-        if (simbolo.equals("+")) {
-            return a + b;
-        } else if (simbolo.equals("-")) {
-            return a - b;
-        } else if (simbolo.equals("*")) {
-            return a * b;
-        } else {
-            return a / b;
-        }
-    }
-
-    private void aplicarTrigonometria(String funcion) {
-        double valor = numeroActual.isEmpty() ? resultado : Double.parseDouble(numeroActual);
-        double angulo = radioGrados.isSelected() ? Math.toRadians(valor) : valor;
-
-        double resultadoFuncion;
-        if (funcion.equals("sin")) {
-            resultadoFuncion = Math.sin(angulo);
-        } else if (funcion.equals("cos")) {
-            resultadoFuncion = Math.cos(angulo);
-        } else {
-            resultadoFuncion = Math.tan(angulo);
-        }
-
-        textoOperacion = textoOperacion + funcion + "(" + formatear(valor) + ")";
-        numeroActual = String.valueOf(resultadoFuncion);
-        pantallaOperacion.setText(textoOperacion);
-        pantallaResultado.setText(formatear(resultadoFuncion));
+            double parse() {
+                nextChar();
+                double x = parseExpression();
+                if (pos < str.length()) throw new RuntimeException("Inesperado: " + (char)ch);
+                return x;
+            }
+            double parseExpression() {
+                double x = parseTerm();
+                for (;;) {
+                    if      (eat('+')) x += parseTerm();
+                    else if (eat('-')) x -= parseTerm();
+                    else return x;
+                }
+            }
+            double parseTerm() {
+                double x = parseFactor();
+                for (;;) {
+                    if      (eat('*')) x *= parseFactor();
+                    else if (eat('/')) x /= parseFactor();
+                    else return x;
+                }
+            }
+            double parseFactor() {
+                if (eat('+')) return parseFactor();
+                if (eat('-')) return -parseFactor();
+                double x;
+                int startPos = this.pos;
+                if (eat('(')) {
+                    x = parseExpression();
+                    eat(')');
+                } else if ((ch >= '0' && ch <= '9') || ch == '.') {
+                    while ((ch >= '0' && ch <= '9') || ch == '.') nextChar();
+                    x = Double.parseDouble(str.substring(startPos, this.pos));
+                } else if (ch == 'π') {
+                    nextChar();
+                    x = Math.PI;
+                } else if (ch >= 'a' && ch <= 'z') {
+                    while (ch >= 'a' && ch <= 'z') nextChar();
+                    String func = str.substring(startPos, this.pos);
+                    x = parseFactor();
+                    boolean radianes = radioRadianes.isSelected();
+                    if (!radianes && (func.equals("sin") || func.equals("cos") || func.equals("tan"))) {
+                        x = Math.toRadians(x);
+                    }
+                    if (func.equals("sin")) x = Math.sin(x);
+                    else if (func.equals("cos")) x = Math.cos(x);
+                    else if (func.equals("tan")) x = Math.tan(x);
+                    else throw new RuntimeException("Función desconocida: " + func);
+                } else {
+                    throw new RuntimeException("Inesperado: " + (char)ch);
+                }
+                return x;
+            }
+        }.parse();
     }
 
     private String formatear(double valor) {
